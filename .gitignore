@@ -1,0 +1,30 @@
+# Build outputs
+build/
+build-*/
+.cxx/
+.gradle/
+*.so
+*.so.sha256
+*.so.asc
+*.aar
+*.aar.sha256
+*.aar.asc
+local.properties
+
+# CMake
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+Makefile
+compile_commands.json
+
+# IDE
+.idea/
+.vscode/
+*.iml
+.DS_Store
+
+# Local secrets (never commit)
+*.key
+*.priv.asc
+secrets.env
