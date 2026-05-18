@@ -41,7 +41,8 @@ jobs:
       - name: clang-tidy (wrapper only)
         # JNI headers, Android-specific defines and the vendored byedpi
         # submodule are passed via -I; HeaderFilterRegex in .clang-tidy
-        # keeps reports limited to our two source files.
+        # keeps reports limited to our two source files. jni_md.h sits in
+        # the platform-specific subdir (linux/) next to jni.h on Linux JDKs.
         run: |
           JNI_INC=$(find "$JAVA_HOME" -name jni.h -printf '%h\n' | head -1)
           BYEDPI_INC=src/main/cpp/byedpi
@@ -49,7 +50,7 @@ jobs:
             --config-file=.clang-tidy \
             src/main/cpp/native-lib.c \
             -- \
-            -I"$JNI_INC" -I"$BYEDPI_INC" \
+            -I"$JNI_INC" -I"$JNI_INC/linux" -I"$BYEDPI_INC" \
             -D__ANDROID__ -DANDROID -D_GNU_SOURCE \
             -std=c11
 
