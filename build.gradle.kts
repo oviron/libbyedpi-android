@@ -19,7 +19,16 @@ android {
         }
         externalNativeBuild {
             cmake {
-                arguments += listOf("-DCMAKE_BUILD_TYPE=Release")
+                // Reproducible-build flags: -ffile-prefix-map strips build host
+                // absolute paths from DWARF, -fdebug-prefix-map normalises
+                // .debug_str. Combined with deterministic ordering in linker
+                // (-Wl,--build-id=none) this yields byte-identical .so output
+                // from any host checkout directory.
+                arguments += listOf(
+                    "-DCMAKE_BUILD_TYPE=Release",
+                    "-DCMAKE_C_FLAGS_RELEASE=-O3 -DNDEBUG -ffile-prefix-map=${rootProject.projectDir}=. -fdebug-prefix-map=${rootProject.projectDir}=.",
+                    "-DCMAKE_SHARED_LINKER_FLAGS_RELEASE=-Wl,--build-id=none",
+                )
             }
         }
         consumerProguardFiles("consumer-rules.pro")

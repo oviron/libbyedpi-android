@@ -1,0 +1,113 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  NDK_VERSION: 28.0.13004108
+  ANDROID_NDK_PATH: /usr/local/lib/android/sdk/ndk/28.0.13004108
+  JAVA_VERSION: '17'
+
+jobs:
+  c-format:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install clang-format
+        run: sudo apt-get update && sudo apt-get install -y clang-format
+      - name: clang-format check (our wrapper only, not vendored byedpi/)
+        run: |
+          clang-format --dry-run -Werror -style=file \
+            src/main/cpp/native-lib.c src/main/cpp/main.h
+
+  c-lint:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - name: Install clang-tidy
+        run: sudo apt-get update && sudo apt-get install -y clang-tidy
+      - name: clang-tidy (wrapper only)
+        # JNI headers, Android-specific defines and the vendored byedpi
+        # submodule are passed via -I; HeaderFilterRegex in .clang-tidy
+        # keeps reports limited to our two source files. jni_md.h sits in
+        # the platform-specific subdir (linux/) next to jni.h on Linux JDKs.
+        run: |
+          JNI_INC=$(find "$JAVA_HOME" -name jni.h -printf '%h\n' | head -1)
+          BYEDPI_INC=src/main/cpp/byedpi
+          clang-tidy \
+            --config-file=.clang-tidy \
+            src/main/cpp/native-lib.c \
+            -- \
+            -I"$JNI_INC" -I"$JNI_INC/linux" -I"$BYEDPI_INC" \
+            -D__ANDROID__ -DANDROID -D_GNU_SOURCE \
+            -std=c11
+
+  kotlin-lint:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: ${{ env.JAVA_VERSION }}
+      - name: Install detekt
+        run: |
+          curl -sSLo detekt.jar https://github.com/detekt/detekt/releases/download/v1.23.7/detekt-cli-1.23.7-all.jar
+          echo '#!/usr/bin/env bash' | sudo tee /usr/local/bin/detekt >/dev/null
+          echo "exec java -jar $PWD/detekt.jar \"\$@\"" | sudo tee -a /usr/local/bin/detekt >/dev/null
+          sudo chmod +x /usr/local/bin/detekt
+      - name: Detekt
+        run: |
+          detekt \
+            --input src/main/kotlin \
+            --build-upon-default-config \
+            --config detekt.yml
+
+  secrets-scan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    needs: [c-format, kotlin-lint]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: ${{ env.JAVA_VERSION }}
+      - uses: gradle/actions/setup-gradle@v4
+      - uses: actions/cache@v4
+        id: ndk-cache
+        with:
+          path: ${{ env.ANDROID_NDK_PATH }}
+          key: ndk-${{ env.NDK_VERSION }}-${{ runner.os }}
+      - name: Install NDK if cache miss
+        if: steps.ndk-cache.outputs.cache-hit != 'true'
+        run: |
+          yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "ndk;${{ env.NDK_VERSION }}"
+      - name: Build .aar
+        run: ./gradlew :assembleRelease --no-daemon
