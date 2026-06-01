@@ -7,6 +7,21 @@ Until v1.0 the public API is considered unstable.
 
 ## [Unreleased]
 
+## [0.1.1] — 2026-06-02
+
+### Added
+- `metadata.json` release asset: machine-readable manifest declaring the
+  bundled core (`byedpi` as a `git describe` of the pinned submodule),
+  `bridgeABI`, ABIs, and AAR SHA-256. The bundled core version is now also in
+  the release title and the README version matrix, so consumers (and the
+  planned in-app version picker) can see which core a wrapper release ships
+  before downloading.
+
+### Unchanged
+- byedpi core stays at submodule `v0.17.3-38-gba53229` (upstream master HEAD);
+  `bridgeABI` and the Kotlin facade are unchanged. This release adds only the
+  versioning/manifest contract.
+
 ## [0.1.0] — 2026-05-17
 
 Initial public release. First public MIT-licensed standalone Android

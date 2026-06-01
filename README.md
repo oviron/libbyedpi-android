@@ -6,13 +6,16 @@ Standalone Android library that embeds **ByeDPI** ([hufrea/byedpi](https://githu
 
 ## What's in each release
 
-Each tag attaches three files to its GitHub Release:
+Each tag attaches four files to its GitHub Release:
 
 | File | Description |
 |---|---|
 | `libbyedpi-android-vX.Y.Z.aar` | Android library, all three ABIs bundled (arm64-v8a + armeabi-v7a + x86_64) plus the Kotlin facade |
 | `libbyedpi-android-vX.Y.Z.aar.sha256` | SHA-256 checksum |
 | `libbyedpi-android-vX.Y.Z.aar.asc` | GPG detached signature |
+| `libbyedpi-android-vX.Y.Z.metadata.json` | Machine-readable manifest: bundled byedpi version, `bridgeABI`, ABIs, AAR SHA-256 |
+
+The bundled core version is also in the release title (`vX.Y.Z (byedpi vA.B.C-N-gSHA)`) and the matrix below.
 
 Verify before consuming:
 
@@ -26,6 +29,15 @@ gpg --verify libbyedpi-android-vX.Y.Z.aar.asc libbyedpi-android-vX.Y.Z.aar
 ```
 
 Public key fingerprint: `1139 C91B 6525 883E 6783 DCF0 4A94 DA48 8A4C 5033`. Cross-check this fingerprint against the maintainer's GitHub profile (https://github.com/oviron) or keys.openpgp.org before trusting the key.
+
+## Version matrix
+
+Which byedpi core each wrapper release bundles. The wrapper version is an independent SemVer; the bundled core is a `git describe` of the pinned [hufrea/byedpi](https://github.com/hufrea/byedpi) submodule, surfaced in the release title, this table, and `metadata.json`.
+
+| Wrapper | byedpi core | bridgeABI |
+|---|---|---|
+| `v0.1.1` | `v0.17.3-38-gba53229` | 1 |
+| `v0.1.0` | `v0.17.3-38-gba53229` | 1 |
 
 ## What's inside the `.aar`
 
