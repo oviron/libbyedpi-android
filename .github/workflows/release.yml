@@ -58,7 +58,11 @@ jobs:
 
       - name: Write metadata.json (bundled core version + bridgeABI)
         run: |
-          CORE=$(git -C src/main/cpp/byedpi describe --tags --long)
+          # Submodule is checked out without tags; fetch them so describe works,
+          # fall back to a short SHA so the release never hard-fails.
+          git -C src/main/cpp/byedpi fetch --tags --force origin >/dev/null 2>&1 || true
+          CORE=$(git -C src/main/cpp/byedpi describe --tags --long 2>/dev/null \
+            || echo "g$(git -C src/main/cpp/byedpi rev-parse --short HEAD)")
           ABI=$(grep -oE 'EXPECTED_BRIDGE_ABI: Int = [0-9]+' \
             src/main/kotlin/io/github/oviron/libbyedpi/ByeDpi.kt | grep -oE '[0-9]+$')
           AAR="libbyedpi-android-${{ github.ref_name }}.aar"
