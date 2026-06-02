@@ -58,9 +58,12 @@ jobs:
 
       - name: Write metadata.json (bundled core version + bridgeABI)
         run: |
-          # Submodule is checked out without tags; fetch them so describe works,
-          # fall back to a short SHA so the release never hard-fails.
-          git -C src/main/cpp/byedpi fetch --tags --force origin >/dev/null 2>&1 || true
+          # Submodule is a shallow checkout: describe needs both the tags AND the
+          # history back to the nearest tag to count commits, so unshallow it.
+          # Fall back to a plain tag fetch (complete clones reject --unshallow),
+          # then to a short SHA so the release never hard-fails.
+          git -C src/main/cpp/byedpi fetch --tags --force --unshallow origin >/dev/null 2>&1 \
+            || git -C src/main/cpp/byedpi fetch --tags --force origin >/dev/null 2>&1 || true
           CORE=$(git -C src/main/cpp/byedpi describe --tags --long 2>/dev/null \
             || echo "g$(git -C src/main/cpp/byedpi rev-parse --short HEAD)")
           ABI=$(grep -oE 'EXPECTED_BRIDGE_ABI: Int = [0-9]+' \
